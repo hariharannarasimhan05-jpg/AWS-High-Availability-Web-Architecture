@@ -1,0 +1,191 @@
+🚀 Ultimate AWS 3-Tier Architecture Guide (Complete)
+Region: ap-south-1 (Mumbai) | VPC CIDR: 10.0.0.0/16
+
+🛑 Phase 1: Networking (The Foundation)
+Goal: Create the roads and lanes for your traffic.
+
+Create VPC:
+
+VPC Dashboard → Create VPC.
+
+Name: MyProject-VPC | CIDR: 10.0.0.0/16.
+
+Tenancy: Default. Click Create.
+
+Create 4 Subnets:
+
+Subnet 1: Name Public-1 | AZ ap-south-1a | CIDR 10.0.1.0/24
+
+Subnet 2: Name Private-1 | AZ ap-south-1a | CIDR 10.0.2.0/24
+
+Subnet 3: Name Public-2 | AZ ap-south-1b | CIDR 10.0.3.0/24
+
+Subnet 4: Name Private-2 | AZ ap-south-1b | CIDR 10.0.4.0/24
+
+Create Internet Gateway (IGW):
+
+Internet Gateways → Create IGW. Name: MyProject-IGW.
+
+Actions → Attach to VPC → Select MyProject-VPC.
+
+Configure Route Tables:
+
+Create Route Table: Name Public-RT | Select MyProject-VPC.
+
+Edit Routes: Add 0.0.0.0/0 → Target Internet Gateway.
+
+Edit Subnet Associations: Select Public-1 and Public-2. Save.
+
+🔒 Phase 2: Security & Identity (The Passports)
+Goal: Create Firewalls (Security Groups) and ID Cards (IAM Roles).
+
+Create Web Security Group (Web-Server-SG):
+
+Inbound Rules:
+
+Type: HTTP | Port: 80 | Source: 0.0.0.0/0 (Anywhere).
+
+Type: SSH | Port: 22 | Source: My IP (Your Laptop).
+
+Create Database Security Group (DB-SG):
+
+Inbound Rules:
+
+Type: MySQL/Aurora | Port: 3306 | Source: Custom → Select Web-Server-SG.
+
+(This ensures ONLY the web server can talk to the database).
+
+Create IAM Role for S3:
+
+IAM Dashboard → Roles → Create role.
+
+Trusted Entity: AWS Service → EC2.
+
+Permissions: Search & Select AmazonS3FullAccess (or ReadOnly).
+
+Name: EC2-S3-Access-Role. Create.
+
+🗄️ Phase 3: Storage & Database (The Missing Piece)
+Goal: Set up the persistent storage for files and data.
+
+Create S3 Bucket:
+
+S3 Dashboard → Create bucket.
+
+Name: hari-project-bucket-2026 (Must be globally unique).
+
+Region: ap-south-1.
+
+Block Public Access: Keep Checked (Secure).
+
+Click Create Bucket.
+
+Create DB Subnet Group (Crucial for RDS):
+
+RDS Dashboard → Subnet groups → Create DB Subnet Group.
+
+Name: my-db-subnet-group.
+
+VPC: Select MyProject-VPC.
+
+Add Subnets: Select AZs ap-south-1a & ap-south-1b. Choose the CIDRs for Private-1 (10.0.2.0) and Private-2 (10.0.4.0).
+
+Create RDS Database:
+
+RDS Dashboard → Create database → Standard create.
+
+Engine: MySQL.
+
+Template: Free Tier (Very Important!).
+
+DB Instance: db.t3.micro.
+
+Master Password: Set a password (write it down!).
+
+Connectivity:
+
+VPC: MyProject-VPC.
+
+Subnet Group: my-db-subnet-group.
+
+Public Access: No.
+
+Security Group: Choose DB-SG (Remove the "default" one).
+
+Additional Config: Uncheck "Enable storage autoscaling" (to prevent costs).
+
+Click Create database.
+
+⚙️ Phase 4: Application & Scaling (The Logic)
+Goal: Launch the servers that run the website.
+
+Create Launch Template:
+
+EC2 → Launch Templates → Create.
+
+Name: MyWebTemplate.
+
+AMI: Amazon Linux 2023. Instance: t2.micro.
+
+Security Group: Web-Server-SG.
+
+Advanced Details → IAM Instance Profile: EC2-S3-Access-Role.
+
+User Data (Copy exact code):
+
+Bash
+#!/bin/bash
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+echo "<h1>Success! Deployed by Hariharan</h1>" > /var/www/html/index.html
+Create Application Load Balancer (ALB):
+
+Load Balancers → Create → ALB.
+
+Scheme: Internet-facing.
+
+Network: MyProject-VPC → Select Public-1 & Public-2.
+
+Security Group: Web-Server-SG.
+
+Listener: HTTP (80) → Create Target Group.
+
+(New Tab) TG Name: My-Web-TG → Instances → VPC: MyProject-VPC → Next → Create.
+
+(Back to ALB) Refresh and select My-Web-TG. Create ALB.
+
+Create Auto Scaling Group (ASG):
+
+Auto Scaling Groups → Create.
+
+Template: MyWebTemplate.
+
+Network: MyProject-VPC → Select Public-1 & Public-2.
+
+Load Balancing: Attach to existing LB → Choose My-Web-TG.
+
+Capacity: Desired 2, Min 1, Max 2.
+
+Click Create.
+
+✅ Phase 5: Verification
+Copy the ALB DNS Name (from Load Balancers page).
+
+Paste it into a browser.
+
+You should see: "Success! Deployed by Hariharan".
+
+🧹 Phase 6: The "Zero Bill" Cleanup (Order Matters!)
+Delete Auto Scaling Group (Wait for instances to terminate).
+
+Delete Load Balancer.
+
+Delete Target Group.
+
+Delete RDS Database (Uncheck "Create Snapshot").
+
+Delete S3 Bucket (Empty it first).
+
+Delete VPC (This cleans up subnets, IGW, and Route Tables automatically).
