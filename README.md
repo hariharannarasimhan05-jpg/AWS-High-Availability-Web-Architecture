@@ -11,8 +11,7 @@ This project demonstrates a secure, scalable, and highly available 3-tier web ar
 * **Traffic Management:** **Application Load Balancer (ALB)** distributing traffic across instances.
 * **Database:** **RDS MySQL** instance isolated in a private subnet.
 * **Storage:** **Amazon S3** for persistent storage with **IAM Roles** for secure access.
-
-success.png
+![Success Screenshot](success.png)
 ## 🛠️ Skills Demonstrated
 * **High Availability:** Configuring Multi-AZ subnets and Load Balancing.
 * **Security:** Using Security Group nesting (Web-SG -> DB-SG) and private subnets.
